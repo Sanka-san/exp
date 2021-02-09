@@ -1,32 +1,35 @@
 import telebot
 from telebot import types
+import csv
 
 bot = telebot.TeleBot('1563221611:AAETbd_iQcs2FnulVsAbyK-XYCyer0UXcjQ')
-
+LIB_PATH = 'lib.txt'
 
 # здесь обрабатываем команды /команда
 @bot.message_handler(commands=['start'])
 def start_handler(message):
-    msg = '''Привет, пани!
-    Я библоитечный бот.'''
-    main_menu(message.chat.id)  # уникальный номер твоего чата с ботом
-
+    msg = '''Привет!
+    Я библиотечный бот.
+    Для начала - введи что ищем'''
+    # main_menu(message.chat.id)  # уникальный номер твоего чата с ботом
+    bot.send_message(message.chat.id, msg)
 
 # здесь обрабатываем сообщения
 @bot.message_handler(content_types=['text'])
 def text_handler(message):
-    if message.text == 'Программирование':
-        # здесь с инлайн кнопками
-        show_book(message.chat.id)
-    elif message.text == 'Фантастика':
-        otvet = 'Стругацикие\nЛукьяненко'
-        msg_out = bot.send_message(message.chat.id, otvet)
-    elif message.text == 'Биотехнологии':
-        link_to_book(message.chat.id)
-    elif message.text == 'Убрать клавиатуру':
-        clear_keyboard(message.chat.id)
-    else:
-        bot.send_message(message.chat.id, 'Я вас не понял')
+    find_book(message.chat.id, message.text)
+    # if message.text == 'Программирование':
+    #     # здесь с инлайн кнопками
+    #     show_book(message.chat.id)
+    # elif message.text == 'Фантастика':
+    #     otvet = 'Стругацикие\nЛукьяненко'
+    #     msg_out = bot.send_message(message.chat.id, otvet)
+    # elif message.text == 'Биотехнологии':
+    #     link_to_book(message.chat.id)
+    # elif message.text == 'Убрать клавиатуру':
+    #     clear_keyboard(message.chat.id)
+    # else:
+    #     bot.send_message(message.chat.id, 'Я вас не понял')
 
 
 # здесь обрабатываем коллбэки
@@ -39,6 +42,23 @@ def download_book(call):
         with open('001.pdf', 'rb') as file:
             bot.send_document(call.message.chat.id, file)
 
+
+def find_book(chat_id, word):
+    # лезем в наш файл и достали список книжек
+    book_list = []
+    with open(LIB_PATH, 'r') as file:
+        reader = csv.DictReader(file, delimiter=';')
+        for row in reader:
+            if word in row['File_Name']:
+                book_list.append(row)
+    if book_list:
+    # импортировали только объект types чтоб меньше писать
+        books_buttons = types.InlineKeyboardMarkup()  # пока пустой список
+        for item in book_list:
+            books_buttons.add(types.InlineKeyboardButton(text="Download", callback_data="File_id=" + item['File_id']))
+            bot.send_message(chat_id, item['File_Name'], reply_markup=books_buttons)
+    else:
+        bot.send_message(chat_id, 'Ничего не найдено')
 
 def main_menu(chat_id):
     menu_buttons = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
